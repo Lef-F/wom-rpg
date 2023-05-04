@@ -34,6 +34,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install OpenSSL development package (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev
+
+      - name: Install OpenSSL development package (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install openssl
+
       - uses: taiki-e/upload-rust-binary-action@d5ea4fc3674360d7af14cbbe77fe3a2125183027
         with:
           bin: wom-rpg
