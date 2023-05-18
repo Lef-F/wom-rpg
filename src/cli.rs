@@ -40,12 +40,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         skin.print_text(USER_HEADER);
 
         let mut user = String::new();
-        io::stdin()
-            .read_line(&mut user)
-            .expect("error: unable to read user input");
+        let mut user_response;
 
-        execute_commands(&user);
-        step = Step::for_prompt_template(prompt!(user: &user));
+        loop {
+            io::stdin()
+                .read_line(&mut user)
+                .expect("error: unable to read user input");
+
+            user_response = user.trim();
+            if user_response.len() > 0 {
+                break; // Exit the loop if a valid input is entered
+            }
+        }
+
+        execute_commands(&user_response);
+        step = Step::for_prompt_template(prompt!(user: &user_response));
 
         res = chain.send_message(step, &parameters!(), &exec).await?;
     }
