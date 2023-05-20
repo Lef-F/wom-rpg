@@ -1,17 +1,40 @@
-use std::io;
+use std::{env, io};
 
 use llm_chain::{
     chains::conversation::Chain, executor, output::Output, parameters, prompt, step::Step,
 };
 use regex::Regex;
-use template::{DM_HEADER, INTRO, MODERATOR, SYSTEM_MODE, THE_END, USER_HEADER};
+use template::{DM_HEADER, INTRO, THE_END, USER_HEADER};
 use termimad::MadSkin;
 use tokio;
 
+mod parser;
 mod template;
+
+use crate::parser::read_yaml_file;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Get the command-line arguments
+    let args: Vec<String> = env::args().collect();
+
+    // Check if an argument is provided
+    if args.len() < 2 {
+        eprintln!("Please provide the path to the YAML template as an argument");
+        return Err("Not enough arguments".into());
+    }
+
+    // Get the file path from the argument
+    let file_path = &args[1];
+
+    let template = match read_yaml_file(file_path) {
+        Ok(data) => data,
+        Err(error) => {
+            eprintln!("Error while opening file {}: {}", file_path, error);
+            panic!("Failed to read YAML file {}", file_path);
+        }
+    };
+
     let skin = MadSkin::default();
     skin.print_text(INTRO);
 
@@ -19,9 +42,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let exec = executor!()?;
 
     // Create a new Chain with the executor.
-    let mut chain = Chain::new(prompt!(system: SYSTEM_MODE))?;
+    let mut chain = Chain::new(prompt!(system: &template.system_mode))?;
 
-    let mut step = Step::for_prompt_template(prompt!(user: MODERATOR));
+    let mut step = Step::for_prompt_template(prompt!(user: &template.introduction));
 
     // Execute the conversation steps.
     let mut res = chain.send_message(step, &parameters!(), &exec).await?;
