@@ -45,8 +45,9 @@ wom-rpg path/to/custom.yaml
 
 ## TODO
 
+- [ ] Update the user when they have successfully passes the output of a command to the DM, so they don't wait on a stalled terminal.
 - [ ] Make sure that the DM does not go into solution mode e.g. ask questions to help the user to solve their problem as if it's real.
-- [ ] Allow for providing more context to the DM e.g. answering `!context-shell kubectl --help` should execute `kubectl --help` in your terminal and pass the output to the DM, letting them know that the user is giving them more context.
 - [ ] Allow for the user to provide handwritten context e.g. `!context-manual Just letting you know that airflow is a task orchestrator. Each task is a directed acyclic graph.`
 - [ ] Allow the user to provide whole documents to the DM e.g. `!context-file path/to/document.txt`
 - [x] Implement templates instead of current hardcoded statics
+- [x] Allow for providing more context to the DM e.g. answering `!context-shell kubectl --help` should execute `kubectl --help` in your terminal and pass the output to the DM, letting them know that the user is giving them more context.

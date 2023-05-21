@@ -4,15 +4,16 @@ use llm_chain::{
     chains::conversation::Chain, executor, output::Output, parameters, prompt, step::Step,
 };
 use parser::Template;
-use regex::Regex;
 use template::{DM_HEADER, INTRO, THE_END, USER_HEADER};
 use termimad::MadSkin;
 use tokio;
 
+mod commands;
 mod parser;
 mod template;
 
 use crate::{
+    commands::user_commands,
     parser::read_yaml_file,
     template::{MODERATOR, SYSTEM_MODE},
 };
@@ -27,7 +28,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         introduction: MODERATOR.to_owned(),
     };
     // Check if an argument is provided
-    println!("{} => {}", &args.len(), &args.join(","));
     if args.len() < 2 {
         println!(
             "No path to custom scenario provided. Using default Wheel of Misfortune scenario."
@@ -79,40 +79,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         skin.print_text(USER_HEADER);
 
-        let mut user = String::new();
-        let mut user_response;
-
         loop {
+            let mut user = String::new();
             io::stdin()
                 .read_line(&mut user)
                 .expect("error: unable to read user input");
 
-            user_response = user.trim();
+            let user_response = user.trim();
+
             if user_response.len() > 0 {
-                break; // Exit the loop if a valid input is entered
+                let command_out = user_commands(user_response);
+                if command_out.is_ok() {
+                    // Pass the command output to the DM
+                    step = Step::for_prompt_template(prompt!(user: &command_out.unwrap()));
+                    break; // Exit the loop if a valid input is entered
+                }
             }
         }
-
-        execute_commands(&user_response);
-        step = Step::for_prompt_template(prompt!(user: &user_response));
 
         res = chain.send_message(step, &parameters!(), &exec).await?;
     }
 
     skin.print_text(THE_END);
     Ok(())
-}
-
-fn execute_commands(input: &str) -> () {
-    let regex_pattern = r"!(\w+)";
-
-    let regex = Regex::new(regex_pattern).unwrap();
-    for captured in regex.captures_iter(input) {
-        if let Some(word) = captured.get(1) {
-            match word.as_str() {
-                "tool" => println!("should execute: {}", word.as_str()),
-                _ => println!("unknown command: {}", word.as_str()),
-            }
-        }
-    }
 }
