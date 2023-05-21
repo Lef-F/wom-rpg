@@ -3,6 +3,7 @@ use std::{env, io};
 use llm_chain::{
     chains::conversation::Chain, executor, output::Output, parameters, prompt, step::Step,
 };
+use parser::Template;
 use regex::Regex;
 use template::{DM_HEADER, INTRO, THE_END, USER_HEADER};
 use termimad::MadSkin;
@@ -11,29 +12,45 @@ use tokio;
 mod parser;
 mod template;
 
-use crate::parser::read_yaml_file;
+use crate::{
+    parser::read_yaml_file,
+    template::{MODERATOR, SYSTEM_MODE},
+};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Get the command-line arguments
     let args: Vec<String> = env::args().collect();
 
-    // Check if an argument is provided
-    if args.len() < 2 {
-        eprintln!("Please provide the path to the YAML template as an argument");
-        return Err("Not enough arguments".into());
-    }
-
-    // Get the file path from the argument
-    let file_path = &args[1];
-
-    let template = match read_yaml_file(file_path) {
-        Ok(data) => data,
-        Err(error) => {
-            eprintln!("Error while opening file {}: {}", file_path, error);
-            panic!("Failed to read YAML file {}", file_path);
-        }
+    let mut template = Template {
+        system_mode: SYSTEM_MODE.to_owned(),
+        introduction: MODERATOR.to_owned(),
     };
+    // Check if an argument is provided
+    println!("{} => {}", &args.len(), &args.join(","));
+    if args.len() < 2 {
+        println!(
+            "No path to custom scenario provided. Using default Wheel of Misfortune scenario."
+        );
+    } else if args.len() >= 3 {
+        eprintln!(
+            "Too many arguments provided {}, expected {}.",
+            args.len() - 1,
+            "1 or none"
+        );
+        return Err("Too many arguments".into());
+    } else if args.len() == 2 {
+        // Get the file path from the argument
+        let file_path = &args[1];
+
+        template = match read_yaml_file(file_path) {
+            Ok(data) => data,
+            Err(error) => {
+                eprintln!("Error while opening file {}: {}", file_path, error);
+                return Err("Failed to read YAML file".into());
+            }
+        };
+    }
 
     let skin = MadSkin::default();
     skin.print_text(INTRO);
